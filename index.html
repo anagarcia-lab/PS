@@ -1295,41 +1295,18 @@ function saveFacturación(){
 function closeModal(id){ document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); }));
 
-// ══════════════════════════════════════════════
-//  INIT - CARGA AUTOMÁTICA DESDE GITHUB
-// ══════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-  // 1. Configuración inicial de botones
-  document.querySelectorAll('.vpill').forEach(p => p.classList.remove('active'));
-  const realPill = document.getElementById('vpReal');
-  if(realPill) { realPill.classList.add('active'); realPill.disabled = false; }
 
-  // 2. Intentar cargar el archivo df.xlsx que subiste a GitHub
-  fetch('df(9).xlsx') 
-    .then(response => {
-      if (!response.ok) throw new Error("No se encontró el archivo df.xlsx en GitHub");
-      return response.arrayBuffer();
-    })
-    .then(buffer => {
-      // Usamos la librería XLSX (que ya tienes cargada) para leer el archivo
-      const workbook = XLSX.read(buffer, { type: 'array' });
-      const firstSheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[firstSheetName];
-      
-      // Convertimos el Excel a formato JSON que tu código ya entiende
-      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
-      
-      if (jsonData && jsonData.length > 0) {
-        realCSV = jsonData; // Guardamos los datos en tu variable global
-        document.getElementById('chipRealTxt').textContent = 'Base de Datos: Cargada desde GitHub ✅';
-        document.getElementById('btnReal').classList.add('loaded');
-        renderER(); // Dibujamos la tabla y gráficas
-      }
-    })
-    .catch(err => {
-      console.error("Error cargando base de datos:", err);
-      document.getElementById('chipRealTxt').textContent = 'Subir archivo df.xlsx a GitHub';
-    });
+// ══════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════
+// Set Real as default active view pill (data is embedded)
+document.addEventListener('DOMContentLoaded', () => {
+  document.querySelectorAll('.vpill').forEach(p=>p.classList.remove('active'));
+  const realPill = document.getElementById('vpReal');
+  if(realPill){ realPill.classList.add('active'); realPill.disabled = false; }
+  // Also mark Real button as loaded since data is embedded
+  document.getElementById('btnReal').classList.add('loaded');
+  renderER();
 });
 // Fallback in case DOMContentLoaded already fired (script at end of body)
 renderER();
