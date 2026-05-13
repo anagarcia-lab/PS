@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PS — Estado de Resultados 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* ═══════════ TOKENS ═══════════ */
+:root {
+  --navy:#0B2545; --blue:#1B4F72; --teal:#0E6B8C; --teal-lt:#E8F4F8;
+  --gold:#C9911A; --gold-lt:#FEF6E4;
+  --green:#1A7A4A; --green-lt:#E8F5EE;
+  --red:#B03A2E; --red-lt:#FDEDEC;
+  --orange:#D35400;
+  --gray:#6B7A8D; --lgray:#EEF1F5; --xlgray:#F7F9FB;
+  --white:#FFFFFF; --text:#1A2535; --text2:#4A5568;
+  --font-head:'DM Serif Display',serif;
+  --font-body:'Sora',sans-serif;
+  --font-num:'DM Mono',monospace;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 4px 16px rgba(0,0,0,.05);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+  --radius:10px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-body);background:var(--xlgray);color:var(--text);font-size:14px;line-height:1.5}
+
+/* ═══════════ HEADER ═══════════ */
+.hdr{background:var(--navy);display:flex;align-items:stretch;gap:0;height:52px;position:sticky;top:0;z-index:200;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.hdr-brand{display:flex;align-items:center;gap:10px;padding:0 20px;border-right:1px solid rgba(255,255,255,.1);flex-shrink:0}
+.hdr-brand .badge{width:28px;height:28px;background:var(--gold);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;color:var(--navy);letter-spacing:-.5px}
+.hdr-brand .name{color:#fff;font-size:13px;font-weight:600;line-height:1.2}
+.hdr-brand .sub{color:rgba(255,255,255,.45);font-size:10px}
+
+/* TABS */
+.hdr-tabs{display:flex;align-items:stretch;flex:1}
+.htab{display:flex;align-items:center;gap:7px;padding:0 22px;cursor:pointer;border-bottom:3px solid transparent;color:rgba(255,255,255,.5);font-size:12.5px;font-weight:500;transition:all .2s;position:relative;white-space:nowrap}
+.htab:hover{color:rgba(255,255,255,.8);background:rgba(255,255,255,.04)}
+.htab.active{color:#fff;border-bottom-color:var(--gold)}
+.htab .tab-icon{font-size:14px}
+.htab .tab-badge{background:rgba(255,255,255,.15);border-radius:4px;font-size:9px;padding:1px 5px;font-weight:600}
+
+/* ACTIONS */
+.hdr-actions{display:flex;align-items:center;gap:6px;padding:0 14px;border-left:1px solid rgba(255,255,255,.1)}
+.hbtn{display:flex;align-items:center;gap:5px;padding:5px 11px;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid;transition:all .18s;font-family:var(--font-body);white-space:nowrap}
+.hbtn-budget{background:transparent;color:rgba(255,255,255,.75);border-color:rgba(255,255,255,.2)}
+.hbtn-budget:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.35);color:#fff}
+.hbtn-budget.loaded{background:rgba(26,122,74,.25);border-color:#1A7A4A;color:#6EE7A8}
+.hbtn-real{background:transparent;color:rgba(255,255,255,.75);border-color:rgba(255,255,255,.2)}
+.hbtn-real:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.35);color:#fff}
+.hbtn-real.loaded{background:rgba(14,107,140,.25);border-color:#0E6B8C;color:#7DD3FA}
+.hbtn-ing{background:var(--gold);color:var(--navy);border-color:var(--gold);font-weight:700}
+.hbtn-ing:hover{opacity:.88}
+
+/* ═══════════ STATUS BAR ═══════════ */
+.status{background:#1A3A5C;border-bottom:1px solid rgba(255,255,255,.07);padding:5px 20px;display:flex;align-items:center;gap:12px;font-size:11px;flex-wrap:wrap}
+.status-chip{display:flex;align-items:center;gap:5px;padding:2px 8px;border-radius:4px;font-weight:500}
+.chip-budget{background:rgba(26,122,74,.2);color:#6EE7A8;border:1px solid rgba(26,122,74,.3)}
+.chip-real{background:rgba(14,107,140,.2);color:#7DD3FA;border:1px solid rgba(14,107,140,.3)}
+.chip-none{background:rgba(255,255,255,.08);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.1)}
+.chip-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.status-hint{color:rgba(255,255,255,.3);font-size:10px;margin-left:auto}
+
+/* ═══════════ TAB PANELS ═══════════ */
+.tab-panel{display:none;animation:fadeIn .2s ease}
+.tab-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+
+/* ═══════════ ER SUBTOOLBAR ═══════════ */
+.subtool{background:var(--white);border-bottom:1px solid var(--lgray);padding:8px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.view-pill{display:flex;background:var(--lgray);border-radius:7px;padding:3px;gap:2px}
+.vpill{padding:4px 13px;border-radius:5px;font-size:11.5px;font-weight:600;cursor:pointer;border:none;background:transparent;color:var(--gray);transition:all .18s;font-family:var(--font-body)}
+.vpill.active{background:var(--white);color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.period-wrap{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text2)}
+.period-wrap select{border:1px solid var(--lgray);border-radius:6px;padding:4px 8px;font-size:11px;color:var(--text);background:var(--white);outline:none;cursor:pointer;font-family:var(--font-body)}
+.subtool-sep{width:1px;height:20px;background:var(--lgray)}
+.expand-all-btn{font-size:11px;color:var(--teal);cursor:pointer;font-weight:500;border:none;background:none;padding:0}
+.expand-all-btn:hover{text-decoration:underline}
+
+/* ═══════════ P&L TABLE ═══════════ */
+.er-wrap{padding:16px 20px 32px}
+.er-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.er-table{width:100%;border-collapse:collapse;font-size:12.5px}
+
+/* column width helpers */
+.er-table .col-concept{width:280px;min-width:220px}
+.er-table .col-num{width:108px;min-width:90px}
+.er-table .col-total{width:120px;min-width:105px}
+.er-table .col-pct{width:72px;min-width:60px}
+.er-table .col-var{width:100px}
+.er-table .col-varpct{width:72px}
+.er-table .col-adv{width:80px}
+
+/* header row */
+.er-table thead tr.th-main th{
+  background:var(--navy);color:#fff;padding:8px 10px;font-size:10px;
+  font-weight:600;letter-spacing:.06em;text-align:right;white-space:nowrap;
+  font-family:var(--font-body);border-right:1px solid rgba(255,255,255,.08)
+}
+.er-table thead tr.th-main th:first-child{text-align:left;border-right:1px solid rgba(255,255,255,.1)}
+
+/* section separator rows */
+tr.er-section td{
+  background:var(--teal);color:#fff;font-size:10px;font-weight:700;
+  letter-spacing:.1em;text-transform:uppercase;padding:5px 12px
+}
+tr.er-section.admin td{background:var(--blue)}
+tr.er-section.otros td{background:#2C3E50}
+
+/* data rows */
+tr.er-data td{padding:6px 10px;border-bottom:1px solid var(--lgray);vertical-align:middle}
+tr.er-data:hover td{background:#F8FBFD}
+tr.er-data.alt td{background:#FAFBFD}
+tr.er-data.alt:hover td{background:#F3F7FB}
+
+/* row variants */
+tr.er-income td{background:var(--green-lt)!important}
+tr.er-income td.cell-concept{color:var(--green);font-weight:700;font-size:13px}
+tr.er-income:hover td{background:#D9F0E6!important}
+
+tr.er-group td.cell-concept{cursor:pointer;user-select:none;font-weight:600;color:var(--navy)}
+tr.er-group:hover td{background:#EEF4FB!important}
+
+tr.er-subtotal td{background:var(--lgray)!important;font-weight:700}
+tr.er-subtotal td.cell-concept{color:var(--teal);font-size:13px}
+tr.er-subtotal:hover td{background:#E2E8F0!important}
+
+tr.er-total td{background:var(--navy)!important}
+tr.er-total td.cell-concept{color:var(--gold);font-weight:700;font-size:13px;font-family:var(--font-head)}
+tr.er-total td.cell-num{color:#fff!important;font-weight:700}
+tr.er-total td.cell-pct{color:rgba(255,255,255,.6)!important}
+
+tr.er-detail td{font-size:11.5px}
+tr.er-detail td.cell-concept{color:var(--text2);padding-left:26px}
+tr.er-detail2 td{font-size:11px}
+tr.er-detail2 td.cell-concept{color:var(--gray);padding-left:44px}
+tr.er-detail3 td{font-size:10.5px}
+tr.er-detail3 td.cell-concept{color:#94A3B8;padding-left:60px}
+
+/* cell types */
+td.cell-concept{text-align:left;display:flex;align-items:center;gap:6px;min-height:28px}
+td.cell-num{text-align:right;font-family:var(--font-num);color:var(--text);white-space:nowrap}
+td.cell-total{text-align:right;font-family:var(--font-num);font-weight:600;color:var(--text);white-space:nowrap}
+td.cell-pct{text-align:right;font-family:var(--font-num);color:var(--gray);font-size:11px;white-space:nowrap}
+td.cell-var-pos{text-align:right;font-family:var(--font-num);color:var(--green);font-weight:600;font-size:11.5px}
+td.cell-var-neg{text-align:right;font-family:var(--font-num);color:var(--red);font-weight:600;font-size:11.5px}
+td.cell-var-neu{text-align:right;font-family:var(--font-num);color:var(--gray);font-size:11.5px}
+td.cell-adv{text-align:right;font-size:11px}
+td.cell-empty{text-align:right;color:#CDD5E0;font-size:11px;font-family:var(--font-num)}
+
+.neg-num{color:var(--red)}
+.pos-num{color:var(--green)}
+
+/* expand icon */
+.exp-icon{width:16px;height:16px;border-radius:4px;background:rgba(11,37,69,.08);display:inline-flex;align-items:center;justify-content:center;font-size:8px;transition:transform .18s;flex-shrink:0;color:var(--blue)}
+.row-expanded .exp-icon{transform:rotate(90deg)}
+.indent-icon{width:16px;flex-shrink:0}
+
+/* budget vs real col pair */
+.col-budget-bg{background:rgba(26,122,74,.04)!important}
+.col-real-bg  {background:rgba(14,107,140,.04)!important}
+.col-hdg-b{background:#1A4A32!important;color:#6EE7A8!important}
+.col-hdg-r{background:#0A3449!important;color:#7DD3FA!important}
+.col-hdg-v{background:#3D2B0A!important;color:#FBD786!important}
+
+/* progress bar in avance */
+.adv-wrap{display:flex;flex-direction:column;gap:2px;align-items:flex-end}
+.adv-bar{height:3px;border-radius:2px;background:var(--lgray);width:50px;overflow:hidden}
+.adv-fill{height:100%;border-radius:2px;background:var(--teal);max-width:100%}
+.adv-txt{font-size:10px;font-family:var(--font-num);color:var(--text2)}
+
+/* ═══════════ SCROLLABLE TABLE WRAPPER ═══════════ */
+.tbl-scroll{overflow-x:auto}
+.tbl-scroll::-webkit-scrollbar{height:5px}
+.tbl-scroll::-webkit-scrollbar-track{background:var(--lgray)}
+.tbl-scroll::-webkit-scrollbar-thumb{background:#BCC5D0;border-radius:3px}
+
+/* ═══════════ KPI TAB ═══════════ */
+.kpi-panel{padding:20px}
+.kpi-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:1400px){.kpi-grid{grid-template-columns:repeat(3,1fr)}}
+.kpi-card{background:var(--white);border-radius:var(--radius);padding:14px 16px;box-shadow:var(--shadow);border-top:3px solid transparent;position:relative}
+.kpi-label{font-size:9.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--gray);font-weight:600;margin-bottom:6px}
+.kpi-val{font-size:22px;font-weight:700;font-family:var(--font-num);line-height:1;margin-bottom:5px}
+.kpi-sub{font-size:10px;color:var(--gray);margin-bottom:6px}
+.kpi-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.kpi-chip{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px}
+.chip-g{background:var(--green-lt);color:var(--green)}
+.chip-r{background:var(--red-lt);color:var(--red)}
+.chip-b{background:var(--lgray);color:var(--gray)}
+.kpi-cmp{font-size:10px;color:var(--gray)}
+
+.kc-ing  {border-top-color:var(--green)}
+.kc-cogs {border-top-color:var(--teal)}
+.kc-bruta{border-top-color:var(--blue)}
+.kc-ebit {border-top-color:var(--gold)}
+.kc-neta {border-top-color:var(--navy)}
+.kc-mg   {border-top-color:var(--orange)}
+
+/* charts */
+.charts-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:14px}
+.chart-card{background:var(--white);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.chart-card h4{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--navy);margin-bottom:12px}
+.chart-h{position:relative;height:210px}
+.chart-h-lg{position:relative;height:200px}
+.charts-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+
+/* ═══════════ ANALYSIS TAB ═══════════ */
+.anal-panel{padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start}
+@media(max-width:1100px){.anal-panel{grid-template-columns:1fr}}
+.anal-card{background:var(--white);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.anal-hdr{background:var(--navy);color:#fff;padding:10px 16px;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.anal-hdr span{font-size:13px}
+.anal-table{width:100%;border-collapse:collapse;font-size:11.5px}
+.anal-table th{background:var(--blue);color:#fff;padding:6px 10px;font-size:10px;font-weight:600;letter-spacing:.04em;text-align:right;white-space:nowrap}
+.anal-table th:first-child{text-align:left;width:34%}
+.anal-table td{padding:5px 10px;border-bottom:1px solid var(--lgray);text-align:right;font-family:var(--font-num);white-space:nowrap}
+.anal-table td:first-child{text-align:left;font-family:var(--font-body);color:var(--text);font-size:11.5px}
+.anal-table tr:nth-child(even) td{background:var(--xlgray)}
+.anal-table tr:last-child td{background:var(--lgray);font-weight:700;font-size:12px}
+.delta-p{color:var(--green);font-weight:600;font-size:10px}
+.delta-n{color:var(--red);font-weight:600;font-size:10px}
+.delta-z{color:var(--gray);font-size:10px}
+.bar-cell{display:flex;align-items:center;gap:6px;justify-content:flex-end}
+.bar-mini{height:6px;border-radius:3px;background:var(--lgray);width:60px;overflow:hidden;flex-shrink:0}
+.bar-mini-fill{height:100%;border-radius:3px;transition:width .4s}
+
+/* ═══════════ MODALS ═══════════ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.overlay.open{display:flex}
+.modal{background:var(--white);border-radius:14px;padding:24px;max-width:500px;width:92%;box-shadow:var(--shadow-lg);animation:modalIn .2s ease}
+@keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+.modal-hdr{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.modal-hdr h3{font-size:15px;font-weight:700;color:var(--navy);font-family:var(--font-head)}
+.modal-hdr .modal-icon{font-size:20px}
+.modal p{font-size:12.5px;color:var(--text2);line-height:1.6;margin-bottom:14px}
+.code-box{background:#F1F5F9;border-radius:7px;padding:10px 13px;font-family:var(--font-num);font-size:11px;color:var(--text);line-height:1.7;margin-bottom:14px;border-left:3px solid var(--teal)}
+.drop-zone{border:2px dashed #CBD5E1;border-radius:9px;padding:24px;text-align:center;cursor:pointer;transition:all .2s;margin-bottom:12px}
+.drop-zone:hover,.drop-zone.over{border-color:var(--teal);background:var(--teal-lt)}
+.drop-zone p{font-size:12px;color:var(--gray);margin-top:8px}
+.drop-zone strong{color:var(--teal)}
+.drop-icon{font-size:32px}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.mbtn{padding:7px 16px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;font-family:var(--font-body)}
+.mbtn-cancel{background:var(--lgray);color:var(--gray);border-color:var(--lgray)}
+.mbtn-primary{background:var(--teal);color:#fff;border-color:var(--teal)}
+.mbtn-primary:hover{opacity:.88}
+
+/* ing inputs */
+.ing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.ing-item label{font-size:10px;font-weight:600;color:var(--text2);display:block;margin-bottom:3px}
+.ing-item input{width:100%;border:1px solid #CBD5E1;border-radius:6px;padding:5px 8px;font-size:12px;outline:none;font-family:var(--font-num)}
+.ing-item input:focus{border-color:var(--teal)}
+
+/* ═══════════ HIERARCHY EXTRA ═══════════ */
+tr.er-section.pend td{background:#8B5A2B}
+.warn-banner{background:var(--gold-lt);border-left:3px solid var(--gold);padding:7px 14px;font-size:11.5px;color:#8B6914;margin:0}
+.warn-banner strong{color:#6B4F11}
+.is-source-tag{font-size:9px;color:var(--gray);background:var(--lgray);padding:1px 6px;border-radius:3px;margin-left:6px;font-weight:500;letter-spacing:.04em}
+.unassigned{color:#94A3B8;font-style:italic}
+tr.er-detail4 td{font-size:10.5px}
+tr.er-detail4 td.cell-concept{color:#94A3B8;padding-left:78px}
+tr.er-data .emp-mini{font-size:10px;color:var(--gray);margin-left:auto;padding-left:8px}
+tr.er-section td .sec-meta{float:right;color:rgba(255,255,255,.65);font-size:9.5px;font-weight:600;letter-spacing:.05em;text-transform:none}
+
+/* empty state for real data */
+.empty-real{background:var(--teal-lt);border:1px dashed var(--teal);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--teal);text-align:center;margin:8px 0}
+</style>
+</head>
+<body>
+
+<!-- ═══════ HEADER ═══════ -->
+<header class="hdr">
+  <div class="hdr-brand">
+    <div class="badge">PS</div>
+    <div><div class="name">Proceso Seguro</div><div class="sub">Estado de Resultados 2026</div></div>
+  </div>
+  <nav class="hdr-tabs">
+    <div class="htab active" onclick="switchTab('er',this)"><span class="tab-icon">📊</span> Estado de Resultados</div>
+    <div class="htab" onclick="switchTab('kpis',this)"><span class="tab-icon">📈</span> KPIs &amp; Gráficas</div>
+    <div class="htab" onclick="switchTab('anal',this)"><span class="tab-icon">🔍</span> Análisis Hz / Vt</div>
+  </nav>
+  <div class="hdr-actions">
+    <button class="hbtn hbtn-budget" id="btnBudget" onclick="openUpload('budget')">⬆ Presupuesto</button>
+    <button class="hbtn hbtn-real" id="btnReal" onclick="openUpload('real')">⬆ Real</button>
+    <button class="hbtn hbtn-ing" onclick="openFacturación()">💰 Facturación</button>
+  </div>
+</header>
+
+<!-- ═══════ STATUS BAR ═══════ -->
+<div class="status">
+  <div class="status-chip chip-budget" id="chipBudget"><span class="chip-dot"></span><span id="chipBudgetTxt">Presupuesto: datos demo</span></div>
+  <div class="status-chip chip-real" id="chipReal"><span class="chip-dot"></span><span id="chipRealTxt">Real: df.xlsx · 4,474 tx</span></div>
+  <div class="status-hint" id="statusHint">Datos: 4,474 transacciones · jerarquía IS → Categoría → Área → Empleado</div>
+</div>
+
+<!-- ═══════ TAB 1: ESTADO DE RESULTADOS ═══════ -->
+<div id="tab-er" class="tab-panel active">
+  <div class="subtool">
+    <div class="view-pill">
+      <button class="vpill active" onclick="setView('budget',this)">Presupuesto</button>
+      <button class="vpill" id="vpReal" onclick="setView('real',this)">Real</button>
+      <button class="vpill" id="vpComp" onclick="setView('comp',this)">Comparativo</button>
+    </div>
+    <div class="subtool-sep"></div>
+    <div class="period-wrap">
+      <span>Período:</span>
+      <select id="periodSel" onchange="renderER()">
+        <option value="full">Año Completo</option>
+        <option value="0">Enero</option><option value="1">Febrero</option>
+        <option value="2">Marzo</option><option value="3">Abril</option>
+        <option value="4">Mayo</option><option value="5">Junio</option>
+        <option value="6">Julio</option><option value="7">Agosto</option>
+        <option value="8">Septiembre</option><option value="9">Octubre</option>
+        <option value="10">Noviembre</option><option value="11">Diciembre</option>
+      </select>
+    </div>
+    <div class="subtool-sep"></div>
+    <button class="expand-all-btn" onclick="expandAll()">Expandir todo</button>
+    <button class="expand-all-btn" style="color:var(--gray)" onclick="collapseAll()">Colapsar</button>
+  </div>
+  <div class="er-wrap">
+    <div class="er-card">
+      <div class="tbl-scroll">
+        <table class="er-table" id="erTable">
+          <thead id="erHead"></thead>
+          <tbody id="erBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TAB 2: KPIs — Sueldos y Salarios ═══════ -->
+<div id="tab-kpis" class="tab-panel">
+  <div class="kpi-panel">
+    <div class="kpi-grid" id="kpiGrid"></div>
+    <div class="charts-grid" style="grid-template-columns:1fr 1fr;">
+      <div class="chart-card">
+        <h4>💰 Sueldos y Salarios — COGS vs Administración</h4>
+        <div class="chart-h"><canvas id="cSSDist"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>🏢 Distribución por Área</h4>
+        <div class="chart-h"><canvas id="cSSArea"></canvas></div>
+      </div>
+    </div>
+    <div class="charts-row2">
+      <div class="chart-card">
+        <h4>🗺 Operaciones — Sueldos por Zona PPTO</h4>
+        <div class="chart-h-lg"><canvas id="cSSZonas"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h4>📊 Concentración de Nómina — % del Total SS</h4>
+        <div class="chart-h-lg"><canvas id="cSSConc"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ TAB 3: ANÁLISIS ═══════ -->
+<div id="tab-anal" class="tab-panel">
+  <div class="anal-panel">
+    <!-- Horizontal -->
+    <div class="anal-card">
+      <div class="anal-hdr"><span>📅</span> Análisis Horizontal — Variación Mensual</div>
+      <div class="tbl-scroll">
+        <table class="anal-table" id="hzTable">
+          <thead><tr>
+            <th>Línea P&amp;L</th>
+            <th>Ene</th><th>Feb</th><th>Mar</th><th>Abr</th>
+            <th>May</th><th>Jun</th><th>Jul–Dic</th>
+            <th>Total</th><th>Var%&nbsp;Ene→Dic</th>
+          </tr></thead>
+          <tbody id="hzBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Vertical -->
+    <div class="anal-card">
+      <div class="anal-hdr"><span>📊</span> Análisis Vertical — % sobre Facturación</div>
+      <div class="tbl-scroll">
+        <table class="anal-table" id="vtTable">
+          <thead><tr>
+            <th>Línea P&amp;L</th>
+            <th>% Ppto.</th>
+            <th>% Real</th>
+            <th>Δ pp</th>
+            <th style="width:90px">Barra</th>
+          </tr></thead>
+          <tbody id="vtBody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- Budget vs Real comparison -->
+    <div class="anal-card" id="analComp" style="display:none">
+      <div class="anal-hdr"><span>⚖</span> Presupuesto vs Real — YTD</div>
+      <div class="tbl-scroll">
+        <table class="anal-table" id="compTable">
+          <thead><tr>
+            <th>Línea P&amp;L</th><th>Budget</th><th>Real YTD</th>
+            <th>Var $</th><th>Var %</th><th>Avance</th>
+          </tr></thead>
+          <tbody id="compBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ UPLOAD MODAL ═══════ -->
+<div class="overlay" id="uploadOverlay">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-icon" id="uploadIcon">⬆</span><h3 id="uploadTitle">Subir CSV</h3></div>
+    <p id="uploadDesc">Sube el archivo de transacciones (df.xlsx) o un CSV equivalente. Columnas requeridas:</p>
+    <div class="code-box">
+<strong>Columnas requeridas:</strong> IS, CATEGORIA_NETSUITE, AREA, ZONA, EMPLEADO, MONTO, Fecha<br><br>
+# Hierarquía aplicada:<br>
+# &nbsp;&nbsp;IS &nbsp;→&nbsp; CATEGORIA_NETSUITE &nbsp;→&nbsp; ÁREA (o ZONA) &nbsp;→&nbsp; EMPLEADO*<br>
+# &nbsp;&nbsp;*sólo para "Sueldos y salarios"<br><br>
+# Valores nulos o "PENDIENTE" → "POR CLASIFICAR" / "Sin Asignar"
+    </div>
+    <div class="drop-zone" id="dropZone" ondragover="ev.preventDefault();this.classList.add('over')" ondragleave="this.classList.remove('over')" ondrop="onDrop(event)" onclick="document.getElementById('fileIn').click()">
+      <div class="drop-icon">📂</div>
+      <p><strong>Haz clic o arrastra</strong> tu archivo .csv o .xlsx aquí</p>
+      <p style="font-size:10.5px;margin-top:4px;color:#94A3B8">Soporta CSV (UTF-8) y Excel (.xlsx)</p>
+    </div>
+    <input type="file" id="fileIn" accept=".csv,.xlsx,.xls" style="display:none" onchange="onFileChange(event)">
+    <div id="uploadMsg" style="font-size:11.5px;color:var(--teal);min-height:16px"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('uploadOverlay')">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════ Facturación MODAL ═══════ -->
+<div class="overlay" id="ingOverlay">
+  <div class="modal">
+    <div class="modal-hdr"><span class="modal-icon">💰</span><h3>Configurar Facturación Mensuales</h3></div>
+    <p>Ingresa la facturación presupuestada por mes (MXN). Los valores en tu Colab se asignan a <code>Facturación</code>.</p>
+    <div class="ing-grid" id="ingGrid"></div>
+    <div class="modal-actions">
+      <button class="mbtn mbtn-cancel" onclick="closeModal('ingOverlay')">Cancelar</button>
+      <button class="mbtn mbtn-primary" onclick="saveFacturación()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+//  CONSTANTS
+// ══════════════════════════════════════════════
+// Archivo de datos que se carga automáticamente desde el mismo
+// directorio del repo (GitHub Pages). Cambia este nombre si
+// renombras el archivo en el repositorio.
+const DATA_FILE = 'df(9).xlsx';
+
+const M  = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+// IS section ordering for the P&L
+const IS_ORDER = ['COGS','GASTOS DE ADMINISTRACIÓN','OTROS Facturación / GASTOS','POR CLASIFICAR'];
+
+// Visual variant per IS section header
+const IS_VARIANTS = {
+  'COGS': '',
+  'GASTOS DE ADMINISTRACIÓN': 'admin',
+  'OTROS Facturación / GASTOS': 'otros',
+  'POR CLASIFICAR': 'pend'
+};
+
+const SUELDOS = 'Sueldos y salarios';
+
+// ══════════════════════════════════════════════
+//  EMBEDDED DATA — pre-aggregated transactions from df.xlsx
+//  Each row: {is, cat, area, zona, emp, mes, monto}
+// ══════════════════════════════════════════════
+let TX = [{"is":"COGS","cat":"Boletos de Avión","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":37055.35},{"is":"COGS","cat":"Casetas y estacionamientos","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":34362.04},{"is":"COGS","cat":"Combustibles y lubricantes","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":19833.79},{"is":"COGS","cat":"Dictamenes","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":206349.03},{"is":"COGS","cat":"Hotel","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":86816.1},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"BCN","emp":"SALCIDO SOTO CINTHYA FERNANDA","mes":0,"monto":18057.01},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"CDMX","emp":"BERNAL MONROY MARIA DEL PILAR JAZMINE","mes":0,"monto":16092.29},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"CDMX","emp":"ROMERO RIZO LUIS ENRIQUE","mes":0,"monto":19018.16},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Chihuahua","emp":"BACA AGUIRRE ANTONIO","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"ACEVEDO LOPEZ GERMAIN","mes":0,"monto":13459.0},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"CAMACHO NUÑO IVAN ANGEL","mes":0,"monto":19018.16},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"ESPINOSA MENDOZA NESTOR AXEL","mes":0,"monto":12971.36},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"GARCIA VELAZQUEZ FIDEL","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"GOMEZ GUZMAN JOSE GUADALUPE","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"GONZALEZ GONZALEZ GERARDO IMMANUEL","mes":0,"monto":24869.9},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"GUZMAN SILVA XIMENA","mes":0,"monto":19561.64},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"JIMENEZ LUCIO LUISA ALONDRA","mes":0,"monto":13826.49},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"MATUS GARCIA REPPER JUAN LUIS","mes":0,"monto":17075.96},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"MENDIZABAL VAZQUEZ SERGIO","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"NAVARRO ROMERO ARTURO","mes":0,"monto":21944.03},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"ORTIZ PEÑA IVAN JOEL","mes":0,"monto":24869.9},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"PATLAN MENDOZA JANILU","mes":0,"monto":21212.56},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"RODRIGUEZ CARRASCO ALEXIS ALAN","mes":0,"monto":29258.7},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"ROMERO SANCHEZ JUAN MIGUEL","mes":0,"monto":19018.16},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"TEPEC TECORRAL JUAN CARLOS","mes":0,"monto":19989.55},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"VACA RODRIGUEZ JESÚS ANTONIO","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Jalisco","emp":"ZAVALA MUNGUIA NICKO HIAFED","mes":0,"monto":13826.49},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Mérida","emp":"PENICHE MUÑOZ ROMAN RAMON","mes":0,"monto":16462.41},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Nuevo Leon","emp":"LOPEZ LOPEZ LUIS DIEGO","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Nuevo Leon","emp":"OCAMPO GUTIERREZ MAGDIEL ISRAEL","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Nuevo Leon","emp":"RIVAS NIETO EDGAR NICOLAS","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"ALMADA NOZATO DANNA PAOLA","mes":0,"monto":14629.35},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"ALTAMIRANO DIAZ CIELO ANEL","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"ALVAREZ CABRERA RODRIGO","mes":0,"monto":22675.49},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"CAMACHO MONCADA MARIA JOSE","mes":0,"monto":3511.04},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"CATARINO TENORIO GRISELDA","mes":0,"monto":14921.94},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"CORNEJO JIMENEZ MARLEN","mes":0,"monto":23406.96},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"DIAZ GARCIA MARIA NARELI","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"FERRUSCA MARTINEZ ELVIRA SARAHI","mes":0,"monto":13826.49},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"GALLARDO PADILLA EBER","mes":0,"monto":26332.83},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"GONZALEZ FERNANDEZ AWDREY NAOMY","mes":0,"monto":16092.29},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"GONZALEZ JIMENEZ MARIA YAITI","mes":0,"monto":29750.25},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"GUTIERREZ RIOS FERNANDO","mes":0,"monto":29258.7},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"HERRERA GARCIA MARIA FERNANDA","mes":0,"monto":14629.35},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"HIDALGO JIMENEZ IRIS SELENE","mes":0,"monto":24501.0},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"JUAREZ QUEVEDO VICTOR HUGO","mes":0,"monto":17081.32},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"LEDEZMA LONGORIA DANIKA","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"LOPEZ MALDONADO AMAIRANI","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"LOPEZ PONCE CARMEN CECILIA","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"MONTES MENDEZ FRANCIA","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"MORENO CATARINO VICTOR URIEL","mes":0,"monto":29258.7},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"OCHOA BARRIENTOS KHIABETT IXCEL","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"PEREZ VASQUEZ BRICIA GUADALUPE","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"PEÑA RANGEL YAMILET NAOMI","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"RANGEL SANCHEZ OMAR ANGEL","mes":0,"monto":21395.43},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"RESENDIZ LAGUNA VIOLETA GUADALUPE","mes":0,"monto":19018.16},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"RIOS CHAVARO LUZ ELIZABETH","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"RODRIGUEZ DOMINGUEZ MONSERRAT","mes":0,"monto":21944.03},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"RUBIO TORRES VALERIA","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"VAZQUEZ MALDONADO ANA KARLA","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"VIDAL CAMBERO EDGARDO RAMIRO","mes":0,"monto":26332.83},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"VILLEDA OLVERA GIOVANA LIZETH","mes":0,"monto":9655.37},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"VILLEGAS BOLAÑOS MARIANA GUADALUPE","mes":0,"monto":23406.96},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Querétaro","emp":"YAÑEZ HERNANDEZ ANGELICA YANETH","mes":0,"monto":40317.32},{"is":"COGS","cat":"Sueldos y salarios","area":"OPERACIONES","zona":"Tamaulipas","emp":"BALTAZAR RODRIGUEZ SERGIO ALBERTO","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Jalisco","emp":"ARVIZU ESTRADA ALBA MARIANA","mes":0,"monto":2925.87},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Jalisco","emp":"DOMINGUEZ LOPEZ IRACEMA","mes":0,"monto":23406.96},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Jalisco","emp":"HIDALGO RODRIGUEZ JESUS EULALIO","mes":0,"monto":9655.37},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Jalisco","emp":"MACIAS BERNACHE ESMERALDA GALILEA","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Jalisco","emp":"MIRELES ORNELAS JORGE","mes":0,"monto":20407.95},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Jalisco","emp":"VASQUEZ JIMENEZ LUIS JOAQUIN","mes":0,"monto":9655.37},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Nuevo Leon","emp":"MURO JIMENEZ GERARDO AUGUSTO","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"CRUZ RODRIGUEZ MARINA CRISTHEL","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"JUAREZ CAZAREZ ISAIAS MIGUEL","mes":0,"monto":33647.51},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"MARTINEZ HERRERA MARIA MAGDALENA","mes":0,"monto":19018.16},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"PEREZ LOPEZ LUIS GUSTAVO","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"ROBLES ROSALES ERNESTO DANIEL","mes":0,"monto":23406.96},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"VALENZUELA PINEDA SURI ZADAY","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Veracruz","emp":"GARCIA CORTES BELLMAR ALONSO","mes":0,"monto":14995.09},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"ARREOLA ALATRISTE ALEXANDRA ESTEPHANIA","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"BOCANEGRA MARTINEZ ELEAZAR","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"DOMINGUEZ CORTES ERICK ALAN","mes":0,"monto":26625.42},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"GARCIA GARCIA SADUI SHERLYN","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"GARCIA MAR JOSE","mes":0,"monto":29258.7},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"GONZALEZ BOTELLO ERIKA SARAI","mes":0,"monto":13826.49},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"LARA MARTINEZ BRENDA ALESSIA","mes":0,"monto":5986.92},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"LOPEZ MENDEZ IRAIDE SUSANA","mes":0,"monto":20481.09},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"LOZANO GONZALEZ MARIA GUADALUPE","mes":0,"monto":17555.22},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"MARTINEZ SANCHEZ LUIS EDUARDO","mes":0,"monto":51068.29},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"MENDOZA RIVERA MELISA","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"OBREGON JIMENEZ JORGE LUIS","mes":0,"monto":33242.45},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"OLVERA PARDO JESUS MANUEL","mes":0,"monto":13826.49},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"ORTIZ CAMACHO BRENDA MONTSERRATH","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"REYES OLGUIN MARIA FERNANDA","mes":0,"monto":24869.9},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"ROJAS VIGIL ELSA","mes":0,"monto":21944.03},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"ROMERO OLMOS CARLOS MANUEL","mes":0,"monto":10240.55},{"is":"COGS","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"SANCHEZ GOMEZ LUIS ENRIQUE","mes":0,"monto":17460.28},{"is":"COGS","cat":"Transportación terrestre","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":53400.61},{"is":"COGS","cat":"Viaticos y gastos de viaje","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":120843.38},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Asistencia Legal","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":25000.0},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Gestoría","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":5169.66},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Servicios administrativos","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":53534.48},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Jalisco","emp":"AREVALO CERVANTES MIGUEL ANGEL","mes":0,"monto":23406.96},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Jalisco","emp":"CABRERA TERAN ARTURO","mes":0,"monto":15360.82},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Jalisco","emp":"PALETA CALDERON GERARDO DANIEL","mes":0,"monto":16092.29},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"ALMANZA GUZMAN FREDDY JESUS","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"ALVAREZ CHAVEZ VICTOR MANUEL","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"BRAVO ZAPIAIN NATALIA","mes":0,"monto":17555.22},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"DE LA VEGA ALCALA BIANCA FRANCISCA","mes":0,"monto":23406.96},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"FERNANDEZ PEREZ CLEIVER JOSE","mes":0,"monto":20481.09},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"HERNANDEZ AGUILAR CIRO ALBERTO","mes":0,"monto":23406.96},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"LOPEZ MORALES EMMANUEL ALEJANDRO","mes":0,"monto":40962.18},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"MARTINEZ RANGEL AMERICA GUADALUPE","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"MENDOZA ALARCON NUR","mes":0,"monto":10240.55},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"MUI DAZA DAVID ALEJANDRO","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"RAMIREZ GONZALEZ NAYELI DEL CARMEN","mes":0,"monto":40962.18},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"COMERCIAL","zona":"Querétaro","emp":"RIVERA CERON MOISES","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"DIRECTIVO","zona":"Querétaro","emp":"MORFIN RODRIGUEZ MARIO FRANCISCO","mes":0,"monto":87776.11},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"FINANZAS","zona":"Querétaro","emp":"MALAGON MORALES JUAN PABLO","mes":0,"monto":19018.16},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"FINANZAS","zona":"Querétaro","emp":"PEREZ NOLASCO FLOR YASMIN","mes":0,"monto":26332.83},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"FINANZAS","zona":"Querétaro","emp":"REYES GALEANA DANNA FABIOLA","mes":0,"monto":13826.49},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"FINANZAS","zona":"Querétaro","emp":"RODRIGUEZ DURAN ROSA YOLANDA","mes":0,"monto":20481.09},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"FINANZAS","zona":"Querétaro","emp":"SANCHEZ ALEJANDRO MARIA DEL CARMEN","mes":0,"monto":13826.49},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"RH","zona":"Jalisco","emp":"MEDINA PORTILLO OMAR YAEL","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"RH","zona":"Nuevo Leon","emp":"MARTINEZ TORRES SAMUEL","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"RH","zona":"Querétaro","emp":"BERRUETA GUTIERREZ SOFIA","mes":0,"monto":13826.49},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"RH","zona":"Querétaro","emp":"CRUZ GARCIA KELLY","mes":0,"monto":16384.87},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"RH","zona":"Querétaro","emp":"SALDAÑA TAMARIZ YOLANDA GUADALUPE","mes":0,"monto":24869.9},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"ALCANTARA SEGURA MIRIAM JOSEFINA","mes":0,"monto":17555.22},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"BERRUETA GONZALEZ FRANCISCO JAVIER","mes":0,"monto":42425.12},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"CERVANTES AGUILAR JENNIFER MICHELLE","mes":0,"monto":19018.16},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"DUARTE RODRIGUEZ GINA ARLETTE","mes":0,"monto":29990.17},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"MALAGON MORALES DIEGO JOSUE","mes":0,"monto":43156.59},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"MORALES ROMERO ALEJANDRO","mes":0,"monto":8777.61},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"MORALES VAZQUEZ RICARDO","mes":0,"monto":24869.9},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"MURILLO PINEDA AURELIO","mes":0,"monto":23406.96},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"RODRIGUEZ OLVERA EDUARDO","mes":0,"monto":22236.61},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"RUMBO PELAEZ FRANCISCO GABRIEL","mes":0,"monto":10240.55},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"Sin Asignar","zona":"Querétaro","emp":"SANCHEZ PALLARES ERNESTO","mes":0,"monto":87776.11},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Jalisco","emp":"ORTIZ MILLA KAREN ITZEL","mes":0,"monto":21944.03},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"LOZA CRUZ SERGIO IVAN","mes":0,"monto":13826.49},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"MARQUEZ MENDOZA GABRIELA","mes":0,"monto":23406.96},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"RETANA OLVERA ARTURO","mes":0,"monto":22946.58},{"is":"GASTOS DE ADMINISTRACIÓN","cat":"Sueldos y salarios","area":"TÉCNICO","zona":"Querétaro","emp":"RIVERA PINEDA LUIS ANGEL","mes":0,"monto":13826.49},{"is":"OTROS Facturación / GASTOS","cat":"Comisiones bancarias","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":105380.81},{"is":"OTROS Facturación / GASTOS","cat":"Gastos no deducibles","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":7235.21},{"is":"OTROS Facturación / GASTOS","cat":"Intereses a cargo bancario nacional","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":288746.73},{"is":"POR CLASIFICAR","cat":"Agua","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":86206.9},{"is":"POR CLASIFICAR","cat":"Amortizacion acumulada de Software","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":203058.79},{"is":"POR CLASIFICAR","cat":"Arrendamiento Automotriz","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":217187.62},{"is":"POR CLASIFICAR","cat":"Arrendamiento a pers fisicas residtes nal","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":541750.86},{"is":"POR CLASIFICAR","cat":"Arrendamiento a pers morales residtes nal","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":20800.0},{"is":"POR CLASIFICAR","cat":"Capacitaciones","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":3864.0},{"is":"POR CLASIFICAR","cat":"Comisiones Efectivale","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":6753.75},{"is":"POR CLASIFICAR","cat":"Consumos","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":187444.54},{"is":"POR CLASIFICAR","cat":"Cuotas y suscripciones","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":138465.13},{"is":"POR CLASIFICAR","cat":"Honorarios a personas fis residentes nal","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":20324.14},{"is":"POR CLASIFICAR","cat":"Impuesto estatal sobre nominas","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":3569.0},{"is":"POR CLASIFICAR","cat":"Insumos para cursos","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":8303.42},{"is":"POR CLASIFICAR","cat":"Limpieza","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":5921.68},{"is":"POR CLASIFICAR","cat":"MULTICATEGORIA","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":1033379.82},{"is":"POR CLASIFICAR","cat":"Mantenimiento y conservacion","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":35998.76},{"is":"POR CLASIFICAR","cat":"Mensajería","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":52509.94},{"is":"POR CLASIFICAR","cat":"Otros gastos generales","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":39644.89},{"is":"POR CLASIFICAR","cat":"Papeleria y articulos de oficina","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":32906.89},{"is":"POR CLASIFICAR","cat":"Programas y licencias","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":7690.0},{"is":"POR CLASIFICAR","cat":"Propaganda y publicidad","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":37620.69},{"is":"POR CLASIFICAR","cat":"Registros Gubernamentales","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":140206.64},{"is":"POR CLASIFICAR","cat":"Seguros y fianzas","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":62844.16},{"is":"POR CLASIFICAR","cat":"Telefono, internet","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":99870.88},{"is":"POR CLASIFICAR","cat":"Uniformes","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":25352.42},{"is":"POR CLASIFICAR","cat":"__CAMBIARIA__","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":5557.72},{"is":"POR CLASIFICAR","cat":"__EXCLUIR__","area":"Sin Asignar","zona":"Sin Asignar","emp":"Sin Asignar","mes":0,"monto":-652802.69}];
+
+// Configurable monthly income (MXN) — edit via 💰 Facturación modal
+let Facturación = [5871718.70,13957230.46,15189392.19,16148701.19,8e6,8.5e6,8e6,8e6,8.5e6,8e6,8e6,9e6];
+
+// ══════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════
+let viewMode = 'real';   // 'real' is default since we have data
+let expanded = {};
+let realCSV  = null;     // populated if user uploads new file
+let currentUploadTarget = 'real';
+
+// ══════════════════════════════════════════════
+//  MATH / FORMAT HELPERS
+// ══════════════════════════════════════════════
+const sum  = a => a.reduce((s,v)=>s+(+v||0),0);
+const ptxt = (v,d=1) => (isFinite(v)?(v*100).toFixed(d):'0.0')+'%';
+const fmx = v => {
+  if(v===null||v===undefined||isNaN(v)) return '—';
+  const a=Math.abs(v), s=v<0?'(':'', e=v<0?')':'';
+  if(a>=1e6) return s+'$'+(a/1e6).toFixed(2)+'M'+e;
+  if(a>=1e3) return s+'$'+a.toLocaleString('es-MX',{maximumFractionDigits:0})+e;
+  return s+'$'+a.toFixed(0)+e;
+};
+const fmn = v => {
+  if(v===null||v===undefined||isNaN(v)) return '—';
+  if(v===0) return '—';
+  const a=Math.abs(v);
+  return (v<0?'(':'')+'$'+a.toLocaleString('es-MX',{maximumFractionDigits:0})+(v<0?')':'');
+};
+const zeros = () => new Array(12).fill(0);
+const safeKey = s => String(s||'').replace(/[^a-zA-Z0-9]/g,'_').toLowerCase();
+
+// Period filter helper
+function periodSlice(arr12) {
+  const p = document.getElementById('periodSel').value;
+  if(p==='full') return arr12;
+  const i = parseInt(p);
+  return [arr12[i]];
+}
+function periodTotal(arr12){
+  const p = document.getElementById('periodSel').value;
+  if(p==='full') return sum(arr12);
+  return arr12[parseInt(p)] || 0;
+}
+function periodCols(){
+  const p = document.getElementById('periodSel').value;
+  return p==='full' ? MS : [MS[parseInt(p)]];
+}
+
+// ══════════════════════════════════════════════
+//  HIERARCHY BUILDER  —  IS → ÁREA → CATEGORÍA → HOJA
+//
+//  Schema:
+//    H[IS_KEY] = { total[12], areas: {
+//      AREA_KEY: { total[12], cats: {
+//        CAT_KEY: { total[12], leafType: 'EMP'|'CONCEPTO', children: {
+//          LEAF_KEY: { total[12] }
+//        } }
+//      } }
+//    } }
+//
+//  • Nivel 1 (sección):    IS  — COGS, GASTOS DE ADMINISTRACIÓN, etc.
+//  • Nivel 2 (área):       AREA del archivo; vacía → "Sin Asignar"
+//  • Nivel 3 (categoría):  CAT — Sueldos y salarios, Viáticos, Dictámenes, ...
+//  • Nivel 4 (hoja):
+//      – si CAT === "Sueldos y salarios"  → EMPLEADO
+//      – en otro caso                      → CONCEPTO (proveedor / detalle)
+// ══════════════════════════════════════════════
+function buildHierarchy(records){
+  const h = {};
+  const SUELDOS_KEY = SUELDOS; // 'Sueldos y salarios'
+  for(const r of records){
+    const isKey   = r.is   || 'POR CLASIFICAR';
+    const areaKey = r.area || 'Sin Asignar';
+    const catKey  = r.cat  || 'Sin Categoría';
+    const isSueldos = catKey === SUELDOS_KEY;
+    // Hoja: empleado para Sueldos, concepto (proveedor) para todo lo demás
+    const leafKey = isSueldos
+      ? (r.emp      && r.emp      !== 'Sin Asignar' ? r.emp      : 'Sin Asignar')
+      : (r.concepto && r.concepto !== 'Sin Detalle' ? r.concepto : 'Sin Detalle');
+    const mes   = (r.mes===null||r.mes===undefined) ? null : r.mes;
+    const monto = +r.monto || 0;
+
+    // IS
+    if(!h[isKey]) h[isKey] = { total: zeros(), areas: {} };
+    if(mes!==null) h[isKey].total[mes] += monto;
+
+    // ÁREA
+    if(!h[isKey].areas[areaKey])
+      h[isKey].areas[areaKey] = { total: zeros(), cats: {} };
+    const areaNode = h[isKey].areas[areaKey];
+    if(mes!==null) areaNode.total[mes] += monto;
+
+    // CATEGORÍA
+    if(!areaNode.cats[catKey])
+      areaNode.cats[catKey] = { total: zeros(),
+                                leafType: isSueldos ? 'EMP' : 'CONCEPTO',
+                                children: {} };
+    const catNode = areaNode.cats[catKey];
+    if(mes!==null) catNode.total[mes] += monto;
+
+    // HOJA
+    if(!catNode.children[leafKey])
+      catNode.children[leafKey] = { total: zeros() };
+    if(mes!==null) catNode.children[leafKey].total[mes] += monto;
+  }
+  return h;
+}
+
+// Get array of 12 monthly totals for an IS group
+function isMonthly(h, isKey){
+  return h[isKey] ? h[isKey].total : zeros();
+}
+
+// Build a sorted list of [key, node] entries by absolute total desc
+function sortedEntries(obj){
+  return Object.entries(obj).sort((a,b)=>Math.abs(sum(b[1].total))-Math.abs(sum(a[1].total)));
+}
+
+// ══════════════════════════════════════════════
+//  RENDER — ER TABLE (hierarchical from real data)
+// ══════════════════════════════════════════════
+function renderER(){
+  const period = document.getElementById('periodSel').value;
+  const full = period === 'full';
+  const midx = full ? null : parseInt(period);
+  const cols = periodCols();
+  const ncols = cols.length;
+
+  // Build hierarchy from current real data (embedded TX or uploaded)
+  const records = (viewMode==='real' && realCSV) ? realCSV : TX;
+  const H = buildHierarchy(records);
+
+  // Income (configurable, not from TX)
+  const ING = Facturación.slice();
+
+  // Aggregate IS lines
+  const cogs   = isMonthly(H,'COGS');
+  const admin  = isMonthly(H,'GASTOS DE ADMINISTRACIÓN');
+  const otros  = isMonthly(H,'OTROS Facturación / GASTOS');
+  const pend   = isMonthly(H,'POR CLASIFICAR');
+
+  // P&L synthetic lines
+  const bruta = ING.map((v,i)=>v - cogs[i]);
+  const ebit  = bruta.map((v,i)=>v - admin[i]);
+  const neta  = ebit.map((v,i)=>v - otros[i]);
+
+  const ingTot = full ? sum(ING) : ING[midx];
+
+  // ── THEAD ──
+  let head = '<tr class="th-main"><th class="col-concept">Concepto</th>';
+  cols.forEach(m => head += `<th class="col-num">${m}</th>`);
+  head += '<th class="col-total">Total</th><th class="col-pct">% Ing.</th>';
+  head += '</tr>';
+  document.getElementById('erHead').innerHTML = head;
+
+  // Helper: compute period value from 12-array
+  const valP = arr => full ? arr : [arr[midx]];
+  const totP = arr => full ? sum(arr) : arr[midx];
+  const pctIng = v => ingTot>0 ? v/ingTot : 0;
+
+  let alt = false;
+
+  // ── BUILD ROWS ──
+  // Row builders
+  function rowConcept(label, level, hasChildren, key, extraClass=''){
+    const exp = hasChildren ? `<span class="exp-icon">${expanded[key]?'▾':'▸'}</span>` : `<span class="indent-icon"></span>`;
+    return `<td class="cell-concept">${exp}<span>${label}</span>${extraClass}</td>`;
+  }
+  function rowNumCells(arr12, isTotal=false){
+    const cells = valP(arr12).map(v => `<td class="${isTotal?'cell-total':'cell-num'}">${fmn(v)}</td>`).join('');
+    const t = totP(arr12);
+    return cells + `<td class="cell-total">${fmn(t)}</td><td class="cell-pct">${ptxt(pctIng(t))}</td>`;
+  }
+  function dataRow(label, arr12, level, key, hasChildren, variantClass='', extraConceptHtml=''){
+    alt = !alt;
+    const altCls = alt ? ' alt' : '';
+    const grpCls = hasChildren ? ' er-group' : '';
+    const expCls = expanded[key] ? ' row-expanded' : '';
+    const onClick = hasChildren ? ` onclick="toggleRow('${key}')"` : '';
+    const lvlCls = level===1?' er-detail' : level===2?' er-detail2' : level===3?' er-detail3' : level===4?' er-detail4' : '';
+    return `<tr class="er-data${altCls}${grpCls}${expCls}${lvlCls} ${variantClass}"${onClick}>
+      ${rowConcept(label, level, hasChildren, key, extraConceptHtml)}
+      ${rowNumCells(arr12)}
+    </tr>`;
+  }
+  function sectionRow(label, variant, total12){
+    const t = totP(total12);
+    const meta = `<span class="sec-meta">${fmn(t)} · ${ptxt(pctIng(t))}</span>`;
+    return `<tr class="er-section${variant?' '+variant:''}"><td colspan="${ncols+3}">${label}${meta}</td></tr>`;
+  }
+  function subtotalRow(label, arr12){
+    return `<tr class="er-data er-subtotal">
+      <td class="cell-concept"><span class="indent-icon"></span><strong>${label}</strong></td>
+      ${rowNumCells(arr12, true)}
+    </tr>`;
+  }
+  function totalRow(label, arr12){
+    return `<tr class="er-data er-total">
+      <td class="cell-concept"><span class="indent-icon"></span><strong>${label}</strong></td>
+      ${rowNumCells(arr12)}
+    </tr>`;
+  }
+  function incomeRow(label, arr12){
+    alt = !alt;
+    return `<tr class="er-data${alt?' alt':''} er-income">
+      <td class="cell-concept"><span class="indent-icon"></span><span>${label}</span></td>
+      ${rowNumCells(arr12)}
+    </tr>`;
+  }
+  function emptyMsg(msg){
+    return `<tr class="er-data"><td colspan="${ncols+3}" style="text-align:center;color:#94A3B8;font-style:italic;padding:14px;font-size:11.5px">${msg}</td></tr>`;
+  }
+
+  let html = '';
+
+  // ── Facturación ──
+  html += sectionRow('💰 Facturación', '', ING);
+  html += incomeRow('Facturación por servicios de dictaminación', ING);
+
+  // ── Render an IS group: ÁREA → CATEGORÍA → HOJA (empleado o concepto) ──
+  function renderISGroup(isKey){
+    const node = H[isKey];
+    if(!node || Object.keys(node.areas).length === 0){
+      html += emptyMsg('Sin transacciones registradas en esta sección');
+      return;
+    }
+    // Nivel 0: ÁREA (bajo el header de la sección)
+    const areas = sortedEntries(node.areas);
+    for(const [areaName, areaNode] of areas){
+      const areaKey = `is.${safeKey(isKey)}.area.${safeKey(areaName)}`;
+      const areaHasKids = Object.keys(areaNode.cats).length > 0;
+      const areaLabel = areaName === 'Sin Asignar'
+        ? '<span class="unassigned">Sin Asignar</span>'
+        : areaName;
+      html += dataRow(areaLabel, areaNode.total, 0, areaKey, areaHasKids);
+      if(!(expanded[areaKey] && areaHasKids)) continue;
+
+      // Nivel 1: CATEGORÍA dentro del área
+      const cats = sortedEntries(areaNode.cats);
+      for(const [catName, catNode] of cats){
+        const catKey = `${areaKey}.cat.${safeKey(catName)}`;
+        const catHasKids = Object.keys(catNode.children).length > 0;
+        const catLabel = catName === 'Sin Categoría'
+          ? '<span class="unassigned">Sin Categoría</span>'
+          : catName;
+        html += dataRow(catLabel, catNode.total, 1, catKey, catHasKids);
+        if(!(expanded[catKey] && catHasKids)) continue;
+
+        // Nivel 2: HOJA — empleado (Sueldos) o concepto/proveedor (otros)
+        const leafSlug = catNode.leafType === 'EMP' ? 'emp' : 'det';
+        const leaves   = sortedEntries(catNode.children);
+        for(const [leafName, leafNode] of leaves){
+          const leafKey   = `${catKey}.${leafSlug}.${safeKey(leafName)}`;
+          const isPlaceholder = leafName === 'Sin Asignar' || leafName === 'Sin Detalle';
+          const leafLabel = isPlaceholder
+            ? `<span class="unassigned">${leafName}</span>`
+            : leafName;
+          html += dataRow(leafLabel, leafNode.total, 2, leafKey, false);
+        }
+      }
+    }
+  }
+
+  // ── COGS ──
+  html += sectionRow('🏭 COSTO DE LO VENDIDO (COGS)', '', cogs);
+  renderISGroup('COGS');
+  html += subtotalRow('= GROSS PROFIT', bruta);
+
+  // ── GASTOS DE ADMINISTRACIÓN ──
+  html += sectionRow('📋 GASTOS DE ADMINISTRACIÓN', 'admin', admin);
+  renderISGroup('GASTOS DE ADMINISTRACIÓN');
+  html += subtotalRow('= OPERATION PROFIT (EBIT)', ebit);
+
+  // ── OTROS Facturación / GASTOS ──
+  html += sectionRow('⚖ OTROS Facturación / GASTOS', 'otros', otros);
+  renderISGroup('OTROS Facturación / GASTOS');
+  html += totalRow('= UTILIDAD NETA', neta);
+
+  // ── POR CLASIFICAR (informativo) ──
+  if(H['POR CLASIFICAR'] && Object.keys(H['POR CLASIFICAR'].areas).length>0){
+    html += sectionRow('⚠ POR CLASIFICAR — Pendiente de asignar IS', 'pend', pend);
+    html += `<tr><td colspan="${ncols+3}" class="warn-banner">
+      <strong>Aviso:</strong> Estas partidas no tienen un valor en la columna IS. Se mostrarán automáticamente en la sección correspondiente cuando los asignes (COGS, Gastos de Administración u Otros).
+    </td></tr>`;
+    renderISGroup('POR CLASIFICAR');
+  }
+
+  document.getElementById('erBody').innerHTML = html;
+}
+
+function toggleRow(key){
+  expanded[key] = !expanded[key];
+  renderER();
+}
+function expandAll(){
+  // Expand IS → ÁREA → CATEGORÍA. Las hojas (empleado / concepto) no son expandibles.
+  const records = (viewMode==='real' && realCSV) ? realCSV : TX;
+  const H = buildHierarchy(records);
+  for(const [isKey, isNode] of Object.entries(H)){
+    for(const [areaName, areaNode] of Object.entries(isNode.areas)){
+      const areaKey = `is.${safeKey(isKey)}.area.${safeKey(areaName)}`;
+      expanded[areaKey] = true;
+      for(const catName of Object.keys(areaNode.cats)){
+        expanded[`${areaKey}.cat.${safeKey(catName)}`] = true;
+      }
+    }
+  }
+  renderER();
+}
+function collapseAll(){ expanded = {}; renderER(); }
+
+// ══════════════════════════════════════════════
+//  RENDER — KPIs (powered by real hierarchy + Facturación)
+// ══════════════════════════════════════════════
+let charts = {};
+function renderKPIs(){
+  const records = (viewMode==='real' && realCSV) ? realCSV : TX;
+  const H = buildHierarchy(records);
+  const ING = Facturación.slice();
+  const cogs   = isMonthly(H,'COGS');
+  const admin  = isMonthly(H,'GASTOS DE ADMINISTRACIÓN');
+  const tI=sum(ING), tC=sum(cogs), tA=sum(admin);
+
+  // ── Sueldos y Salarios extraction ──
+  const SUELDOS_KEY = 'Sueldos y salarios';
+  function getSueldosByGroup(isKey){
+    // Sueldos ahora vive dentro de cada ÁREA; agregamos a lo largo de todas.
+    const node = H[isKey];
+    if(!node) return 0;
+    let t = 0;
+    for(const areaNode of Object.values(node.areas)){
+      const catNode = areaNode.cats[SUELDOS_KEY];
+      if(catNode) t += sum(catNode.total);
+    }
+    return t;
+  }
+  const ssCogs  = getSueldosByGroup('COGS');
+  const ssAdmin = getSueldosByGroup('GASTOS DE ADMINISTRACIÓN');
+  const ssTotal = ssCogs + ssAdmin;
+  const safe = (n,d) => d>0 ? n/d : 0;
+
+  // ── Sueldos by Area (all IS) ──
+  const ssByArea = {};
+  for(const r of records){
+    if(r.cat !== SUELDOS_KEY) continue;
+    const area = r.area || 'Sin Asignar';
+    ssByArea[area] = (ssByArea[area]||0) + (+r.monto||0);
+  }
+  const sortedAreas = Object.entries(ssByArea).sort((a,b)=>b[1]-a[1]);
+
+  // ── Sueldos OPERACIONES by Zona ──
+  const ssByZona = {};
+  for(const r of records){
+    if(r.cat !== SUELDOS_KEY) continue;
+    if((r.area||'').toUpperCase() !== 'OPERACIONES') continue;
+    const zona = (r.zona && r.zona!=='Sin Asignar') ? r.zona : 'POR CLASIFICAR';
+    ssByZona[zona] = (ssByZona[zona]||0) + (+r.monto||0);
+  }
+  const sortedZonas = Object.entries(ssByZona).sort((a,b)=>b[1]-a[1]);
+
+  // ── KPI Cards ──
+  const kpis = [
+    {cls:'kc-ing',  label:'Total Sueldos y Salarios', val:ssTotal, sub:'Nómina consolidada (COGS + Admin)', chipTxt:'100% nómina', chipCls:'chip-b'},
+    {cls:'kc-cogs', label:'SS — COGS',  val:ssCogs,  sub:'Costo directo operativo', chipTxt:ptxt(safe(ssCogs,ssTotal))+' del total', chipCls:'chip-r'},
+    {cls:'kc-bruta',label:'SS — Administración', val:ssAdmin, sub:'Gastos de administración', chipTxt:ptxt(safe(ssAdmin,ssTotal))+' del total', chipCls:'chip-g'},
+    {cls:'kc-ebit', label:'SS — Operaciones', val:ssByArea['OPERACIONES']||0, sub:'Zona con mayor concentración', chipTxt:ptxt(safe(ssByArea['OPERACIONES']||0,ssTotal))+' del SS', chipCls:'chip-r'},
+    {cls:'kc-neta', label:'SS — % sobre Facturación', val:ssTotal, sub:'Peso de la nómina en ingresos', chipTxt:ptxt(safe(ssTotal,tI))+' de ingresos', chipCls:safe(ssTotal,tI)>0.5?'chip-r':'chip-g'},
+    {cls:'kc-mg',   label:'Zonas Operaciones', val:Object.keys(ssByZona).length, sub:'Zonas PPTO con personal activo', chipTxt:Object.keys(ssByZona).length+' zonas', chipCls:'chip-b'},
+  ];
+  // Fix last KPI to show count not currency
+  document.getElementById('kpiGrid').innerHTML = kpis.map((k,i) => `
+    <div class="kpi-card ${k.cls}">
+      <div class="kpi-label">${k.label}</div>
+      <div class="kpi-val">${i===5 ? k.val : fmx(k.val)}</div>
+      <div class="kpi-sub">${k.sub}</div>
+      <div class="kpi-row"><span class="kpi-chip ${k.chipCls}">${k.chipTxt}</span></div>
+    </div>`).join('');
+
+  if(typeof Chart === 'undefined'){ console.warn('Chart.js no cargó.'); return; }
+
+  const palette = ['#0B2545','#0E6B8C','#1A7A4A','#C9911A','#B03A2E','#D35400','#1B4F72','#6B7A8D','#8B5A2B','#94A3B8','#2C3E50'];
+
+  // ── Chart 1: Pie COGS vs Admin ──
+  if(charts.ssDist) charts.ssDist.destroy();
+  charts.ssDist = new Chart(document.getElementById('cSSDist'),{
+    type:'pie',
+    data:{
+      labels:['COGS (Costo Directo)','Gastos de Administración'],
+      datasets:[{data:[ssCogs,ssAdmin],
+        backgroundColor:['#0E6B8C','#1B4F72'],
+        borderColor:['#fff','#fff'],borderWidth:3,hoverOffset:10}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{position:'bottom',labels:{font:{size:11,family:'Sora'},padding:12,boxWidth:14}},
+        tooltip:{callbacks:{label:c=>' '+fmx(c.parsed)+' ('+ptxt(safe(c.parsed,ssTotal))+')'}}
+      }
+    }
+  });
+
+  // ── Chart 2: Donut por Área ──
+  if(charts.ssArea) charts.ssArea.destroy();
+  charts.ssArea = new Chart(document.getElementById('cSSArea'),{
+    type:'doughnut',
+    data:{
+      labels:sortedAreas.map(a=>a[0]),
+      datasets:[{data:sortedAreas.map(a=>a[1]),
+        backgroundColor:palette,borderWidth:0,hoverOffset:8,cutout:'55%'}]
+    },
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{
+        legend:{position:'right',labels:{font:{size:10,family:'Sora'},boxWidth:10,padding:6}},
+        tooltip:{callbacks:{label:c=>' '+fmx(c.parsed)+' — '+ptxt(safe(c.parsed,ssTotal))}}
+      }
+    }
+  });
+
+  // ── Chart 3: Horizontal bar Zonas Ops ──
+  if(charts.ssZonas) charts.ssZonas.destroy();
+  const zonaTotal = sortedZonas.reduce((s,z)=>s+z[1],0);
+  charts.ssZonas = new Chart(document.getElementById('cSSZonas'),{
+    type:'bar',
+    data:{
+      labels:sortedZonas.map(z=>z[0]),
+      datasets:[{
+        label:'Sueldos Operaciones',
+        data:sortedZonas.map(z=>z[1]),
+        backgroundColor:sortedZonas.map((_,i)=>palette[i%palette.length]),
+        borderRadius:5,borderWidth:0
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>fmx(c.parsed)+' | '+ptxt(safe(c.parsed,zonaTotal))+' de Ops'}}
+      },
+      scales:{
+        x:{ticks:{callback:v=>'$'+(v/1e3).toFixed(0)+'K',font:{size:9}},grid:{color:'#F0F3F6'}},
+        y:{ticks:{font:{size:10,family:'Sora'}}}
+      }
+    }
+  });
+
+  // ── Chart 4: Stacked bar — concentración (% de cada área) ──
+  if(charts.ssConc) charts.ssConc.destroy();
+  // Show all areas as % of total SS — horizontal stacked single bar
+  const concLabels = sortedAreas.map(a=>a[0]);
+  const concData   = sortedAreas.map(a=>parseFloat((a[1]/ssTotal*100).toFixed(2)));
+  charts.ssConc = new Chart(document.getElementById('cSSConc'),{
+    type:'bar',
+    data:{
+      labels:concLabels,
+      datasets:[{
+        label:'% del Total SS',
+        data:concData,
+        backgroundColor:concLabels.map((_,i)=>palette[i%palette.length]),
+        borderRadius:5,borderWidth:0
+      }]
+    },
+    options:{responsive:true,maintainAspectRatio:false,indexAxis:'y',
+      plugins:{
+        legend:{display:false},
+        tooltip:{callbacks:{label:c=>c.parsed.toFixed(1)+'% — '+fmx(sortedAreas[c.dataIndex][1])}}
+      },
+      scales:{
+        x:{ticks:{callback:v=>v+'%',font:{size:9}},max:100,grid:{color:'#F0F3F6'}},
+        y:{ticks:{font:{size:10,family:'Sora'}}}
+      }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
+//  RENDER — ANALYSIS (Hz/Vt)
+// ══════════════════════════════════════════════
+function renderAnalysis(){
+  const records = (viewMode==='real' && realCSV) ? realCSV : TX;
+  const H = buildHierarchy(records);
+  const ING = Facturación.slice();
+  const cogs   = isMonthly(H,'COGS');
+  const admin  = isMonthly(H,'GASTOS DE ADMINISTRACIÓN');
+  const otros  = isMonthly(H,'OTROS Facturación / GASTOS');
+  const pend   = isMonthly(H,'POR CLASIFICAR');
+  const bruta  = ING.map((v,i)=>v - cogs[i]);
+  const ebit   = bruta.map((v,i)=>v - admin[i]);
+  const neta   = ebit.map((v,i)=>v - otros[i]);
+
+  const lines = [
+    {label:'Facturación', arr:ING},
+    {label:'COGS', arr:cogs},
+    {label:'Ut. Bruta', arr:bruta},
+    {label:'G. Admin', arr:admin},
+    {label:'EBIT', arr:ebit},
+    {label:'Otros', arr:otros},
+    {label:'Ut. Neta', arr:neta},
+    {label:'Por Clasificar', arr:pend}
+  ];
+
+  const tI = sum(ING);
+  let h = '';
+  for(const l of lines){
+    const v = l.arr;
+    const dPct = (a,b) => b!==0 ? ((a-b)/Math.abs(b)*100).toFixed(1) : '—';
+    const dcls = (a,b) => a>=b?'delta-p':'delta-n';
+    const dfmt = (a,b) => { const d=dPct(a,b); return d==='—'?d:(parseFloat(d)>=0?'+':'')+d+'%'; };
+    const h7_12 = sum(v.slice(6,12));
+    const tot = sum(v);
+    const varDicEne = v[0]!==0 ? (v[11]-v[0])/Math.abs(v[0])*100 : 0;
+    h += `<tr>
+      <td>${l.label}</td>
+      <td>${fmx(v[0])}</td>
+      <td>${fmx(v[1])} <span class="${dcls(v[1],v[0])}">${dfmt(v[1],v[0])}</span></td>
+      <td>${fmx(v[2])} <span class="${dcls(v[2],v[1])}">${dfmt(v[2],v[1])}</span></td>
+      <td>${fmx(v[3])} <span class="${dcls(v[3],v[2])}">${dfmt(v[3],v[2])}</span></td>
+      <td>${fmx(v[4])} <span class="${dcls(v[4],v[3])}">${dfmt(v[4],v[3])}</span></td>
+      <td>${fmx(v[5])} <span class="${dcls(v[5],v[4])}">${dfmt(v[5],v[4])}</span></td>
+      <td>${fmx(h7_12)}</td>
+      <td><strong>${fmx(tot)}</strong></td>
+      <td><span class="${v[11]>=v[0]?'delta-p':'delta-n'}">${(varDicEne>=0?'+':'')+varDicEne.toFixed(1)}%</span></td>
+    </tr>`;
+  }
+  document.getElementById('hzBody').innerHTML = h;
+
+  // Vertical
+  let v = '';
+  for(const l of lines){
+    const pct = tI>0 ? sum(l.arr)/tI : 0;
+    const barW = Math.min(Math.abs(pct)*100*1.2, 100);
+    const barColor = l.label.startsWith('Ut.')||l.label==='EBIT' ? (sum(l.arr)>=0?'#1A7A4A':'#B03A2E')
+                    : l.label==='Facturación' ? '#0E6B8C'
+                    : l.label==='Por Clasificar' ? '#8B5A2B' : '#B03A2E';
+    v += `<tr>
+      <td>${l.label}</td>
+      <td><strong>${ptxt(pct)}</strong></td>
+      <td><span style="color:#94A3B8">— sólo Real</span></td>
+      <td>—</td>
+      <td class="bar-cell"><div class="bar-mini"><div class="bar-mini-fill" style="width:${barW}%;background:${barColor}"></div></div><span style="font-size:10px;color:#94A3B8">${ptxt(pct,1)}</span></td>
+    </tr>`;
+  }
+  document.getElementById('vtBody').innerHTML = v;
+}
+
+// ══════════════════════════════════════════════
+//  TAB SWITCHING
+// ══════════════════════════════════════════════
+function switchTab(tab, el){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.htab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('tab-'+tab).classList.add('active');
+  el.classList.add('active');
+  if(tab==='kpis') renderKPIs();
+  if(tab==='anal') renderAnalysis();
+}
+
+// ══════════════════════════════════════════════
+//  VIEW MODE
+// ══════════════════════════════════════════════
+function setView(mode, el){
+  viewMode = mode;
+  document.querySelectorAll('.vpill').forEach(p=>p.classList.remove('active'));
+  el.classList.add('active');
+  renderER();
+}
+
+// ══════════════════════════════════════════════
+//  UPLOAD (CSV or XLSX)
+// ══════════════════════════════════════════════
+function openUpload(target){
+  currentUploadTarget = target;
+  const isBudget = target==='budget';
+  document.getElementById('uploadIcon').textContent = isBudget ? '📋' : '📊';
+  document.getElementById('uploadTitle').textContent = isBudget ? 'Subir Presupuesto (CSV/XLSX)' : 'Subir Real (CSV/XLSX)';
+  document.getElementById('uploadMsg').textContent = '';
+  document.getElementById('uploadOverlay').classList.add('open');
+}
+function onDrop(e){
+  e.preventDefault();
+  document.getElementById('dropZone').classList.remove('over');
+  processFile(e.dataTransfer.files[0]);
+}
+function onFileChange(e){ processFile(e.target.files[0]); }
+
+function processFile(file){
+  if(!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const reader = new FileReader();
+
+  reader.onload = e => {
+    try {
+      let records;
+      if(ext === 'xlsx' || ext === 'xls'){
+        const data = new Uint8Array(e.target.result);
+        const wb = XLSX.read(data, {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(ws, {defval:null});
+        records = normalizeRows(rawRows);
+      } else {
+        // CSV
+        records = parseCSV(e.target.result);
+      }
+
+      if(!records || records.length===0) throw new Error('No se encontraron filas válidas');
+
+      if(currentUploadTarget==='real'){
+        realCSV = records;
+        document.getElementById('btnReal').classList.add('loaded');
+        document.getElementById('chipReal').className = 'status-chip chip-real';
+        document.getElementById('chipRealTxt').textContent = 'Real: '+file.name+' · '+records.length+' filas';
+        document.getElementById('uploadMsg').textContent = '✅ Real cargado: '+records.length+' filas agregadas';
+      } else {
+        document.getElementById('btnBudget').classList.add('loaded');
+        document.getElementById('chipBudgetTxt').textContent = 'Presupuesto: '+file.name;
+        document.getElementById('uploadMsg').textContent = '✅ Presupuesto cargado (no afecta el análisis Real actual)';
+      }
+      setTimeout(()=>closeModal('uploadOverlay'), 1400);
+      renderER();
+      if(document.getElementById('tab-kpis').classList.contains('active')) renderKPIs();
+      if(document.getElementById('tab-anal').classList.contains('active')) renderAnalysis();
+    } catch(err){
+      document.getElementById('uploadMsg').textContent = '❌ Error: '+err.message;
+    }
+  };
+
+  if(ext==='xlsx'||ext==='xls') reader.readAsArrayBuffer(file);
+  else reader.readAsText(file);
+}
+
+// CSV parser → rows in TX format
+function parseCSV(text){
+  const lines = text.replace(/\r/g,'').split('\n').filter(l=>l.trim());
+  if(lines.length<2) return [];
+  const headers = lines[0].split(',').map(h=>h.trim().replace(/^"|"$/g,''));
+  const objs = [];
+  for(let i=1;i<lines.length;i++){
+    const vals = lines[i].split(',').map(v=>v.trim().replace(/^"|"$/g,''));
+    const o = {};
+    headers.forEach((h,j)=>o[h]=vals[j]);
+    objs.push(o);
+  }
+  return normalizeRows(objs);
+}
+
+// Normalize incoming rows (xlsx/csv) → internal TX schema
+//
+// Híbrida — capaz de clasificar nómina y otros egresos:
+//   • Mes:  PERIODO ("ENERO" / "FEBRERO" / ...) → fallback a Fecha ("01/Ene/2026")
+//   • IS:   IS                 → Clasf Efs → Cuenta IS  → 'POR CLASIFICAR'
+//   • Cat:  CATEGORIA_NETSUITE → Concepto              → 'Sin Categoría'
+//   • Área / Zona / Empleado:  default 'Sin Asignar' si no vienen poblados
+function normalizeRows(rows){
+  // Diccionario de meses — acepta nombre completo y abreviatura de 3 letras
+  const MES_MAP = {
+    ene:0, feb:1, mar:2, abr:3, may:4, jun:5,
+    jul:6, ago:7, sep:8, oct:9, nov:10, dic:11,
+    enero:0, febrero:1, marzo:2, abril:3, mayo:4, junio:5,
+    julio:6, agosto:7, septiembre:8, octubre:9, noviembre:10, diciembre:11,
+    set:8, sept:8, setiembre:8
+  };
+
+  // Limpia un valor individual; devuelve def si está vacío / PENDIENTE / NaN
+  const norm = (v, def) => {
+    if(v===null||v===undefined) return def;
+    let s = String(v).trim();
+    if(s===''||s.toUpperCase()==='PENDIENTE'||s.toLowerCase()==='nan') return def;
+    return s;
+  };
+
+  // pickNorm: recorre una lista de columnas y devuelve el primer valor no vacío.
+  // Es lo que permite que IS → Clasf Efs → Cuenta IS funcione a nivel de fila:
+  // si una fila tiene IS=NaN pero Clasf Efs="Dictamenes", devuelve "Dictamenes".
+  const pickNorm = (row, cols, def) => {
+    for(const c of cols){
+      if(!c) continue;
+      const v = row[c];
+      if(v===null||v===undefined) continue;
+      const s = String(v).trim();
+      if(s===''||s.toUpperCase()==='PENDIENTE'||s.toLowerCase()==='nan') continue;
+      return s;
+    }
+    return def;
+  };
+
+  // parseMes — devuelve 0..11 o null.
+  // Acepta: índice numérico 1..12, serial Excel, nombre/abrev en español,
+  // y strings con separadores ("01/Ene/2026", "2026-03-15").
+  const parseMes = f => {
+    if(f===null||f===undefined||f==='') return null;
+
+    if(typeof f === 'number'){
+      if(Number.isInteger(f) && f>=1 && f<=12) return f-1;
+      const d = new Date(Math.round((f-25569)*86400*1000));
+      if(!isNaN(d.getTime())) return d.getUTCMonth();
+      return null;
+    }
+
+    const raw = String(f).trim();
+    if(raw==='') return null;
+
+    // Nombre/abreviatura suelta (insensible a mayúsculas y a espacios)
+    const cleaned = raw.toLowerCase().replace(/\s+/g,'');
+    if(MES_MAP[cleaned] !== undefined) return MES_MAP[cleaned];
+    const pref3 = cleaned.substring(0,3);
+    if(MES_MAP[pref3] !== undefined) return MES_MAP[pref3];
+
+    // String tipo fecha con separadores
+    const parts = raw.split(/[\/\-\.\s]/).filter(Boolean);
+    if(parts.length>=2){
+      const mTxt = parts[1].toLowerCase().substring(0,3);
+      if(MES_MAP[mTxt] !== undefined) return MES_MAP[mTxt];
+      const mNum = parseInt(parts[1]);
+      if(!isNaN(mNum) && mNum>=1 && mNum<=12) return mNum-1;
+      const mNum0 = parseInt(parts[0]);
+      if(!isNaN(mNum0) && mNum0>=1 && mNum0<=12) return mNum0-1;
+    }
+
+    const d = new Date(raw);
+    if(!isNaN(d.getTime())) return d.getMonth();
+    return null;
+  };
+
+  // findCol — case-insensitive y accent-insensitive.
+  // Pase 1: match exacto. Pase 2: substring.
+  const sample = rows[0] || {};
+  const keys = Object.keys(sample);
+  const stripAccents = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+  const findCol = (...needles) => {
+    const cleanNeedles = needles.map(n => stripAccents(String(n).toLowerCase().trim()));
+    for(const k of keys){
+      const lo = stripAccents(k.toLowerCase().trim());
+      for(const n of cleanNeedles) if(lo === n) return k;
+    }
+    for(const k of keys){
+      const lo = stripAccents(k.toLowerCase().trim());
+      for(const n of cleanNeedles) if(lo.includes(n)) return k;
+    }
+    return null;
+  };
+
+  // Resolución de columnas — varias por dimensión para la cadena de fallback
+  const cIS        = findCol('IS');                                  // sección P&L principal
+  const cClasfEfs  = findCol('Clasf Efs','clasf efs','clasificacion efs');
+  const cCuentaIS  = findCol('Cuenta IS','cuenta is','cuenta_is');
+  const cCAT       = findCol('CATEGORIA_NETSUITE','categoria','category');
+  const cConcepto  = findCol('Concepto','concepto');
+  const cAREA      = findCol('ÁREA','AREA','area');
+  const cZONA      = findCol('ZONA PPTO','ZONA','zona');
+  const cEMP       = findCol('EMPLEADO','employee');
+  const cMONTO     = findCol('MONTO','monto','amount');
+  const cPERIODO   = findCol('PERIODO','periodo');                   // mes primario
+  const cFECHA     = findCol('Fecha','fecha','date');                // mes fallback
+
+  const out = [];
+  for(const r of rows){
+    const monto = parseFloat(r[cMONTO]) || 0;
+    if(!monto && monto!==0) continue;
+
+    // ── Mes: PERIODO primero, Fecha como fallback ─────────────────────────
+    let mes = null;
+    if(cPERIODO){
+      const pv = r[cPERIODO];
+      if(pv!==null && pv!==undefined && String(pv).trim()!==''){
+        mes = parseMes(pv);
+      }
+    }
+    if(mes===null && cFECHA){
+      mes = parseMes(r[cFECHA]);
+    }
+
+    // ── IS: encadenamos columnas para no perder filas sin IS explícito ────
+    // Filas con IS="COGS"/"GASTOS DE ADMINISTRACIÓN"/... → caen ahí directo.
+    // Filas con IS vacío pero Clasf Efs poblado → toman el valor de Clasf Efs
+    // (queda como sección propia en el H; útil para no perder los datos).
+    let is = pickNorm(r, [cIS, cClasfEfs, cCuentaIS], 'POR CLASIFICAR');
+
+    // Canonicalizar variantes de IS para que entren en las secciones
+    // hardcodeadas del P&L (IS_ORDER). En df(9).xlsx aparecen 9 filas con
+    // 'OTROS INGRESOS / GASTOS' que conceptualmente son la misma sección
+    // que 'OTROS Facturación / GASTOS'. Si no las mapeamos, esas filas se
+    // perderían silenciosamente del Estado de Resultados.
+    const isUp = is.toUpperCase();
+    if(isUp === 'OTROS INGRESOS / GASTOS' || isUp === 'OTROS FACTURACIÓN / GASTOS')
+      is = 'OTROS Facturación / GASTOS';
+
+    // ── Cat: CATEGORIA_NETSUITE primero, Concepto como fallback ───────────
+    const cat = pickNorm(r, [cCAT, cConcepto], 'Sin Categoría');
+
+    out.push({
+      is:       is,
+      cat:      cat,
+      area:     pickNorm(r, [cAREA],     'Sin Asignar'),
+      zona:     pickNorm(r, [cZONA],     'Sin Asignar'),
+      emp:      pickNorm(r, [cEMP],      'Sin Asignar'),
+      // Concepto: para no-Sueldos suele ser el proveedor/detalle del cargo.
+      // Para Sueldos contiene el nombre del empleado (redundante con emp).
+      // En buildHierarchy se usa como hoja sólo cuando cat !== "Sueldos y salarios".
+      concepto: pickNorm(r, [cConcepto], 'Sin Detalle'),
+      mes:      mes,
+      monto:    monto
+    });
+  }
+  return out;
+}
+
+// ══════════════════════════════════════════════
+//  Facturación MODAL
+// ══════════════════════════════════════════════
+function openFacturación(){
+  document.getElementById('ingGrid').innerHTML = M.map((m,i)=>`
+    <div class="ing-item">
+      <label>${m}</label>
+      <input type="number" id="ing_${i}" value="${Facturación[i]}" step="100000" min="0">
+    </div>`).join('');
+  document.getElementById('ingOverlay').classList.add('open');
+}
+function saveFacturación(){
+  Facturación = M.map((_,i)=>parseFloat(document.getElementById('ing_'+i).value)||0);
+  closeModal('ingOverlay');
+  renderER();
+  if(document.getElementById('tab-kpis').classList.contains('active')) renderKPIs();
+  if(document.getElementById('tab-anal').classList.contains('active')) renderAnalysis();
+}
+
+// ══════════════════════════════════════════════
+//  MODAL HELPERS
+// ══════════════════════════════════════════════
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.overlay').forEach(o=>o.addEventListener('click', e=>{ if(e.target===o) o.classList.remove('open'); }));
+
+
+// ══════════════════════════════════════════════
+//  INIT  —  CARGA AUTOMÁTICA DESDE GITHUB PAGES
+// ══════════════════════════════════════════════
+//  Reemplaza la necesidad de presionar el botón "Real".
+//  Al cargar la página, se hace fetch del archivo declarado en
+//  DATA_FILE (mismo directorio del sitio) y se procesa con XLSX.
+//
+//  Flujo:
+//    1. Marca "Cargando…" en el chip Real
+//    2. fetch(DATA_FILE) → ArrayBuffer
+//    3. XLSX.read → sheet_to_json → normalizeRows → realCSV
+//    4. Status: "Cargado desde GitHub · N filas"
+//    5. Render ER + KPIs + Análisis (si están activos)
+//
+//  Si el fetch falla (archivo ausente o servido como 404 HTML),
+//  el chip mostrará "Error: <archivo> no encontrado en el repositorio"
+//  y se renderiza el tablero con los datos demo embebidos en TX.
+
+async function autoLoadReal(){
+  const chip    = document.getElementById('chipReal');
+  const chipTxt = document.getElementById('chipRealTxt');
+  const btnReal = document.getElementById('btnReal');
+
+  // Estado: cargando
+  chipTxt.textContent = 'Cargando ' + DATA_FILE + '…';
+
+  try {
+    // 1) Descargar el archivo desde el mismo directorio del repo.
+    //    cache:'no-store' garantiza que cada visita lea la última versión.
+    const resp = await fetch(DATA_FILE, { cache: 'no-store' });
+    if(!resp.ok) throw new Error('HTTP ' + resp.status);
+
+    // 2) Validar que sea binario XLSX y no un HTML 404 servido como 200
+    //    (GitHub Pages a veces devuelve la página 404 con status 200).
+    const ct = resp.headers.get('content-type') || '';
+    if(ct.includes('text/html'))
+      throw new Error('El servidor devolvió HTML, no un .xlsx');
+
+    // 3) Parsear con la librería XLSX que ya está cargada en <head>
+    const buf  = await resp.arrayBuffer();
+    const wb   = XLSX.read(new Uint8Array(buf), { type: 'array' });
+    const ws   = wb.Sheets[wb.SheetNames[0]];
+    const raw  = XLSX.utils.sheet_to_json(ws, { defval: null });
+
+    // 4) Normalizar al esquema interno {is, cat, area, zona, emp, mes, monto}
+    const records = normalizeRows(raw);
+    if(!records || records.length === 0)
+      throw new Error('Archivo sin filas válidas tras normalizar');
+
+    // 5) Reemplaza la data demo embebida (TX) por la real
+    realCSV  = records;
+    viewMode = 'real';
+
+    // 6) Actualiza el status bar
+    chip.className     = 'status-chip chip-real';
+    chipTxt.textContent = 'Cargado desde GitHub · ' + records.length + ' filas';
+    btnReal.classList.add('loaded');
+
+    // 7) Re-pinta lo que esté visible
+    renderER();
+    if(document.getElementById('tab-kpis').classList.contains('active')) renderKPIs();
+    if(document.getElementById('tab-anal').classList.contains('active')) renderAnalysis();
+
+  } catch(err){
+    console.error('[autoLoadReal] ' + DATA_FILE + ' no se pudo cargar:', err);
+    chip.className     = 'status-chip chip-none';
+    chipTxt.textContent = 'Error: ' + DATA_FILE + ' no encontrado en el repositorio';
+    // Fallback: renderizar igual con los datos demo embebidos
+    renderER();
+  }
+}
+
+// Dispara la carga automática al estar listo el DOM
+document.addEventListener('DOMContentLoaded', () => {
+  // Asegura que el view-pill "Real" quede activo (el tablero arranca en Real)
+  document.querySelectorAll('.vpill').forEach(p=>p.classList.remove('active'));
+  const realPill = document.getElementById('vpReal');
+  if(realPill){ realPill.classList.add('active'); realPill.disabled = false; }
+
+  autoLoadReal();
+});
+
+// Fallback si DOMContentLoaded ya disparó (script al final del body)
+if(document.readyState !== 'loading') autoLoadReal();
+</script>
+</body>
+</html>
