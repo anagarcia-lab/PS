@@ -1717,6 +1717,9 @@ function parseBudgetRecords(rows){
 // ══════════════════════════════════════════════
 //  autoLoadBudget — fetch budget.xlsx from repo
 // ══════════════════════════════════════════════
+// =═════════════════════════════════════════════
+//  autoLoadReal — CONEXIÓN SEGURA CON LA API SERVERLESS
+// =═════════════════════════════════════════════
 async function autoLoadReal(){
   const chip    = document.getElementById('chipReal');
   const chipTxt = document.getElementById('chipRealTxt');
@@ -1740,7 +1743,6 @@ async function autoLoadReal(){
     const respuestaServidor = await resp.json();
 
     // 3) Asignamos los registros procesados al estado de la aplicación
-    // Nota: Tu función de Vercel debe devolver la estructura formateada de filas
     realCSV  = respuestaServidor.lineasTransacciones; 
     viewMode = 'real';
 
@@ -1763,6 +1765,21 @@ async function autoLoadReal(){
     renderER();
   }
 }
+
+// Dispara la carga automática al estar listo el DOM
+document.addEventListener('DOMContentLoaded', () => {
+  // Empezamos mostrando el presupuesto por defecto
+  viewMode = 'budget';
+  document.querySelectorAll('.vpill').forEach(p=>p.classList.remove('active'));
+  const budgetPill = document.querySelector('.vpill');  // primera pestaña = Presupuesto
+  if(budgetPill) budgetPill.classList.add('active');
+  
+  renderER();
+  autoLoadReal(); // <--- Llama a nuestra única y segura función
+});
+
+// Fallback si DOMContentLoaded ya disparó
+if(document.readyState !== 'loading'){ autoLoadReal(); }
 
 async function autoLoadReal(){
   const chip    = document.getElementById('chipReal');
