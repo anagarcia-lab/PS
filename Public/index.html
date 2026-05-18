@@ -1717,45 +1717,50 @@ function parseBudgetRecords(rows){
 // ══════════════════════════════════════════════
 //  autoLoadBudget — fetch budget.xlsx from repo
 // ══════════════════════════════════════════════
-async function autoLoadBudget(){
-  const chip    = document.getElementById('chipBudget');
-  const chipTxt = document.getElementById('chipBudgetTxt');
-  const btnBgt  = document.getElementById('btnBudget');
+async function autoLoadReal(){
+  const chip    = document.getElementById('chipReal');
+  const chipTxt = document.getElementById('chipRealTxt');
+  const btnReal = document.getElementById('btnReal');
 
-  chipTxt.textContent = 'Cargando ' + BUDGET_FILE + '…';
+  // Estado: cargando
+  chipTxt.textContent = 'Conectando con API Serverless…';
 
   try {
-    const resp = await fetch(BUDGET_FILE, { cache: 'no-store' });
-    if(!resp.ok) throw new Error('HTTP ' + resp.status);
-    const ct = resp.headers.get('content-type') || '';
-    if(ct.includes('text/html'))
-      throw new Error('Servidor devolvió HTML, no .xlsx');
+    // 1) Llamamos a la ventanilla del servidor en lugar de buscar el archivo Excel
+    const resp = await fetch('/api/datos', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
 
-    const buf = await resp.arrayBuffer();
-    const wb  = XLSX.read(new Uint8Array(buf), { type: 'array' });
-    const ws  = wb.Sheets[wb.SheetNames[0]];
-    const raw = XLSX.utils.sheet_to_json(ws, { defval: null });
-    const records = normalizeRows(raw);
+    if(!resp.ok) throw new Error('Error en la API: HTTP ' + resp.status);
 
-    if(!records || records.length === 0)
-      throw new Error('Archivo budget sin filas válidas');
+    // 2) Recibimos el JSON con los datos ya masticados y calculados por el servidor
+    const respuestaServidor = await resp.json();
 
-    budgetCSV = records;
-    // parseBudgetRecords can optionally override BGT structure
-    const parsed = parseBudgetRecords(records);
-    if(parsed) budgetOverride = parsed;
+    // 3) Asignamos los registros procesados al estado de la aplicación
+    // Nota: Tu función de Vercel debe devolver la estructura formateada de filas
+    realCSV  = respuestaServidor.lineasTransacciones; 
+    viewMode = 'real';
 
-    chip.className      = 'status-chip chip-budget';
-    chipTxt.textContent = 'Budget GitHub · ' + records.length + ' filas';
-    btnBgt.classList.add('loaded');
+    // 4) Actualizamos la barra de estado superior
+    chip.className     = 'status-chip chip-real';
+    chipTxt.textContent = '🔒 Servidor Seguro · Datos Sincronizados';
+    btnReal.classList.add('loaded');
 
+    // 5) Re-pintamos los componentes visuales activos
+    renderER();
+    if(document.getElementById('tab-kpis').classList.contains('active')) renderKPIs();
     if(document.getElementById('tab-anal').classList.contains('active')) renderAnalysis();
 
   } catch(err){
-    console.warn('[autoLoadBudget]', err.message);
-    // Non-fatal: embedded BGT data is used as fallback
-    chip.className      = 'status-chip chip-budget';
-    chipTxt.textContent = 'Presupuesto: datos embebidos (budget.xlsx no encontrado)';
+    console.error('[autoLoadReal] No se pudo conectar con la API:', err);
+    chip.className     = 'status-chip chip-none';
+    chipTxt.textContent = 'Error de conexión con el Servidor Seguro';
+    
+    // Fallback: Si el servidor falla, muestra los datos de demostración para que la web no se rompa
+    renderER();
   }
 }
 
