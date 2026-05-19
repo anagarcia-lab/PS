@@ -795,7 +795,7 @@ function renderER(){
       html += dataRow('Dir. Ops <span class="is-source-tag">OPERACIONES</span>',  bgtData.cogsDirectCostDirOps, 1, kCogsDirectOps,  false);
       html += dataRow('Dir. Tech <span class="is-source-tag">TÉCNICO</span>',     bgtData.cogsDirectCostDirTech,1, kCogsDirectTech, false);
     }
-    html += subtotalRow('= GROSS PROFIT (Budget)', bruta_b);
+    html += subtotalRow('= GROSS MARGIN (Budget)', bruta_b);
 
     html += sectionRow('📋 GASTOS DE ADMINISTRACIÓN — Presupuesto', 'admin', admin_b);
     const kSgaPayroll='bgt.sga.payroll', kSgaIndirect='bgt.sga.indirect',
@@ -900,7 +900,7 @@ function renderER(){
   // ── COGS ──
   html += sectionRow('🏭 COSTO DE LO VENDIDO (COGS)', '', cogs);
   renderISGroup('COGS');
-  html += subtotalRow('= GROSS PROFIT', bruta);
+  html += subtotalRow('= GROSS MARGIN', bruta);
 
   // ── GASTOS DE ADMINISTRACIÓN ──
   html += sectionRow('📋 GASTOS DE ADMINISTRACIÓN', 'admin', admin);
