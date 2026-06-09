@@ -784,7 +784,7 @@ function renderSingleYear(records, ING, year){
 
   // Facturación
   html += sectionRow('💰 Facturación '+year, '', ING);
-  html += incomeRow('Facturación por servicios de dictaminación', ING);
+  html += incomeRow('COBRANZA 2025', ING);
 
   function renderISGroup(isKey){
     const node = H[isKey];
@@ -999,7 +999,7 @@ function renderCompYear(){
   }
 
   html += compSection('💰 Facturación', '', factP25, factP26);
-  html += compIncome('Facturación por servicios de dictaminación', factP25, factP26);
+  html += compIncome('COBRANZA 2025', factP25, factP26);
 
   html += compSection('🏭 COSTO DE LO VENDIDO (COGS)', '', cogs25, cogs26);
   renderCompGroup('COGS');
@@ -1118,7 +1118,7 @@ function renderKPIs(){
   if(typeof Chart === 'undefined'){ console.warn('Chart.js no cargó.'); return; }
   const C25 = '#0E6B8C', C26 = '#1A7A4A';
 
-  // ── Chart 1: Líneas — Facturación 2025 vs 2026 (Ene–Dic) ──
+  // ── Chart 1: Líneas —COBRANZA vs 2026 (Ene–Dic) ──
   if(charts.factYoY) charts.factYoY.destroy();
   charts.factYoY = new Chart(document.getElementById('cFactYoY'),{
     type:'line',
