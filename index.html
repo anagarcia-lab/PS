@@ -847,7 +847,7 @@ function renderSingleYear(records, ING, year){
   renderISGroup('GASTOS DE ADMINISTRACIÓN');
   html += subtotalRow('= OPERATION PROFIT (EBIT)', ebit);
 
-  html += sectionRow('⚖ OTROS Cobranza / GASTOS', 'otros', otros);
+  html += sectionRow('⚖ OTROS Facturación / GASTOS', 'otros', otros);
   renderISGroup('OTROS Cobranza / GASTOS');
 
   if(H['POR CLASIFICAR'] && Object.keys(H['POR CLASIFICAR'].areas).length>0){
@@ -1014,7 +1014,7 @@ function renderCompYear(){
   renderCompGroup('GASTOS DE ADMINISTRACIÓN');
   html += compSubtotal('= OPERATION PROFIT (EBIT)', ebit25, ebit26);
 
-  html += compSection('⚖ OTROS Cobranza / GASTOS', 'otros', otr25, otr26);
+  html += compSection('⚖ OTROS Facturación / GASTOS', 'otros', otr25, otr26);
   renderCompGroup('OTROS Cobranza / GASTOS');
   html += compTotal('= UTILIDAD NETA', neta25, neta26);
 
