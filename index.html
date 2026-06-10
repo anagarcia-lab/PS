@@ -303,7 +303,7 @@ tr.er-section td .sec-meta{float:right;color:rgba(255,255,255,.65);font-size:9.5
   <div class="hdr-actions">
     <button class="hbtn hbtn-real" id="btn2025" onclick="openUpload('y2025')">⬆ Real 2025</button>
     <button class="hbtn hbtn-budget" id="btn2026" onclick="openUpload('y2026')">⬆ Real 2026</button>
-    <button class="hbtn hbtn-ing" onclick="openFacturacion()">💰 Cobranza</button>
+    <button class="hbtn hbtn-ing" onclick="openCOBRANZA()">💰 Cobranza</button>
   </div>
 </header>
 
@@ -459,7 +459,7 @@ tr.er-section td .sec-meta{float:right;color:rgba(255,255,255,.65);font-size:9.5
     <div class="ing-grid" id="ingGrid"></div>
     <div class="modal-actions">
       <button class="mbtn mbtn-cancel" onclick="closeModal('ingOverlay')">Cancelar</button>
-      <button class="mbtn mbtn-primary" onclick="saveFacturacion()">Guardar</button>
+      <button class="mbtn mbtn-primary" onclick="saveCOBRANZA()">Guardar</button>
     </div>
   </div>
 </div>
@@ -1610,7 +1610,7 @@ function updateChips(){
 // ══════════════════════════════════════════════
 //  Cobranza MODAL (por año)
 // ══════════════════════════════════════════════
-function openFacturacion(){ setFactYear(2025, document.getElementById('fy-25')); document.getElementById('ingOverlay').classList.add('open'); }
+function openCOBRANZA(){ setFactYear(2025, document.getElementById('fy-25')); document.getElementById('ingOverlay').classList.add('open'); }
 function setFactYear(year, el){
   factYear = year;
   document.querySelectorAll('#ingOverlay .bpill').forEach(p=>p.classList.remove('active'));
@@ -1622,7 +1622,7 @@ function setFactYear(year, el){
       <input type="number" id="ing_${i}" value="${arr[i]}" step="100000" min="0">
     </div>`).join('');
 }
-function saveFacturacion(){
+function saveCOBRANZA(){
   const arr = M.map((_,i)=>parseFloat(document.getElementById('ing_'+i).value)||0);
   if(factYear===2026) Fact2026 = arr; else Fact2025 = arr;
   closeModal('ingOverlay');
